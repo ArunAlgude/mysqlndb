@@ -1,0 +1,76 @@
+#!/bin/sh
+# Linux Standard Base comments
+### BEGIN INIT INFO
+# Provides:          ndb_mgmd
+# Required-Start:    $local_fs $network $syslog $remote_fs
+# Required-Stop:     $local_fs $network $syslog $remote_fs
+# Should-Start:
+# Should-Stop:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: mysql cluster manager
+# Description:       mysql cluster manager
+### END INIT INFO
+
+DESC="SQL Management Node service"
+NAME=ndb_mgmd
+
+. /lib/lsb/init-functions
+
+ndb_mgmd=/usr/local/bin/ndb_mgmd
+config_file=/data/mysql_mgm/config.ini
+config_dir=/data/mysql_mgm/
+mgm_node_id={{ mySQL_MgmNode_ID }}
+
+if ! test -x $ndb_mgmd; then
+	echo "Can't execute $ndb_mgmd"
+	exit;
+fi
+
+start_ndb_mgmd(){
+	number_of_ndb_mgmd_pids=`ps aux|grep -iv "grep"|grep -i "$NAME"|wc -l`
+	if [ $number_of_ndb_mgmd_pids -eq 0 ]; then
+		sudo -u mysql $ndb_mgmd -f $config_file --initial --config-dir=$config_dir --ndb-nodeid=$mgm_node_id
+		echo "ndb_mgmd started."
+	else
+		echo "ndb_mgmd is already running."
+	fi
+}
+
+stop_ndb_mgmd(){
+	number_of_ndb_mgmd_pids=`ps aux|grep -iv "grep"|grep -i "$NAME"|wc -l`
+	if [ $number_of_ndb_mgmd_pids -ne 0 ]; then
+		ndb_mgmd_pids=`pgrep ndb_mgmd`
+  	for ndb_mgmd_pid in $(echo $ndb_mgmd_pids); do
+    	kill $ndb_mgmd_pid 2> /dev/null
+  	done
+
+    sleep 10
+		number_of_ndb_mgmd_pids=`ps aux|grep -iv "grep"|grep -i "$NAME"|wc -l`
+
+  	if [ $number_of_ndb_mgmd_pids -eq 0 ]; then
+    	echo "ndb_mgmd stopped."
+  	else
+    	echo "Could not stop ndb_mgmd."
+  	fi
+	else
+		echo "ndb_mgmd is not running."
+	fi
+}
+
+
+case "$1" in
+    'start' )
+      start_ndb_mgmd
+        ;;
+    'stop' )
+			stop_ndb_mgmd
+        ;;
+    'restart' )
+      stop_ndb_mgmd
+			start_ndb_mgmd
+        ;;
+    *)
+      echo "Usage: $0 {start|stop|restart}" >&2
+        ;;
+esac

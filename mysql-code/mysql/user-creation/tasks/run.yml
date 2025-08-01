@@ -1,0 +1,106 @@
+---
+- include_vars: environments/{{ inventory_file | basename }}/group_vars/credentials.yml
+  tags: always
+
+- name: Update repositories
+  apt: update_cache=yes cache_valid_time=600
+
+#required for mysql module
+- name: Install MySQLdb
+  apt:
+    pkg: python-mysqldb
+    state: latest
+  register: mysqldb
+
+- name: Remove /etc/mysql directory
+  file:
+    path: /etc/mysql
+    state: absent
+  become: yes
+
+- name: Create user in MySQL and grant access
+  mysql_user:
+    login_user: "{{ mySQL_admin_user_to_use }}"
+    login_password: "{{ mySQL_admin_pass_to_use }}"
+    config_file: /etc/my.cnf
+    name: "{{ item.0.user_name }}"
+    password: "{{ item.0.password }}"
+    host: "{{ hostvars[item.1].ansible_default_ipv4.address }}"
+    login_host: "{{ db_node }}"
+    priv: "{{ item.0.db_name }}.*:ALL"
+    update_password: always
+    state: present
+  changed_when: false
+  with_subelements:
+    - "{{ sql_users }}"
+    - group
+  when: hostvars[item.1].ansible_default_ipv4 is defined
+  tags: create_mysql_users
+  register: mysql_user_creation
+
+- name: Create user in Blue MySQL and grant access
+  mysql_user:
+    login_user: "{{ mySQL_admin_user_to_use }}"
+    login_password: "{{ mySQL_admin_pass_to_use }}"
+    config_file: /etc/my.cnf
+    name: "{{ item.0.user_name }}"
+    password: "{{ item.0.password }}"
+    host: "{{ hostvars[item.1].ansible_default_ipv4.address }}"
+    login_host: "{{ hostvars[groups.mysql_cluster_sql_blue[0]].ansible_default_ipv4.address }}"
+    priv: "{{ item.0.db_name }}.*:ALL"
+    update_password: always
+    state: present
+  changed_when: false
+  with_subelements:
+    - "{{ sql_users }}"
+    - group
+  when: blue_mysql is defined
+  tags: create_mysql_users
+  register: mysql_user_creation
+
+- name: Create user in MySQL and grant access for CDH Subnet
+  mysql_user:
+    login_user: "{{ mySQL_admin_user_to_use }}"
+    login_password: "{{ mySQL_admin_pass_to_use }}"
+    config_file: /etc/my.cnf
+    name: "{{ item.0.user_name }}"
+    password: "{{ item.0.password }}"
+    host: "{{ item.1 }}"
+    login_host: "{{ db_node }}"
+    priv: "{{ item.0.db_name }}.*:ALL"
+    update_password: always
+    state: present
+  changed_when: false
+  with_subelements:
+    - "{{ sql_users }}"
+    - network
+  when: item.1 is defined
+  tags: create_mysql_users
+  register: mysql_user_creation2
+
+- name: Create user in MySQL and grant access for CDH Subnet
+  mysql_user:
+    login_user: "{{ mySQL_admin_user_to_use }}"
+    login_password: "{{ mySQL_admin_pass_to_use }}"
+    config_file: /etc/my.cnf
+    name: "{{ item.0.user_name }}"
+    password: "{{ item.0.password }}"
+    host: "{{ item.1 }}"
+    login_host: "{{ hostvars[groups.mysql_cluster_sql_blue[0]].ansible_default_ipv4.address }}"
+    priv: "{{ item.0.db_name }}.*:ALL"
+    update_password: always
+    state: present
+  changed_when: false
+  with_subelements:
+    - "{{ sql_users }}"
+    - network
+  when: blue_mysql is defined
+  tags: create_mysql_users
+  register: mysql_user_creation2
+
+- name: Fail if mysql user creation is skipped
+  fail: msg="Some component of 'sql_users' is undefined. Check log output from previous step for 'is undefined'"
+  when: (mysql_user_creation is skipped) or (mysql_user_creation2 is skipped)
+
+- set_fact:
+    user_creation_role_already_ran: True

@@ -1,0 +1,14 @@
+---
+# Download link
+mySQLclusterFileName: mysql-cluster-gpl-7.4.6-linux-glibc2.5-x86_64
+mySQLclusterArchiveFileName: "{{ mySQLclusterFileName }}.tar.gz"
+mySQLclusterDownloadLink: "{{ artifactory_URL }}/file-storage/mysql-cluster/{{ mySQLclusterArchiveFileName }}"
+# Warning: Remember to calculate SHA 256 for the archive
+mySQLClusterArchiveSHA_256: 
+
+mySQL_cluster_admin_user: root
+
+mysql_SQLnode_datadir: /data/mysql
+mysql_SQLnode_tmpdir: /data/tmp
+mysql_openfile_limit: 32768
+mysql_socket_dir: /var/run/mysql

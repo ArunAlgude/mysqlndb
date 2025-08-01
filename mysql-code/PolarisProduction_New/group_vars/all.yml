@@ -1,0 +1,240 @@
+artifactory_URL: 'https://jfrog.ais.io/artifactory'
+
+force_apt_get_install: "no"
+
+liquibase_version: "3.4.2"
+
+# Component versions
+CDH_release_version: "5.12.0"
+
+CDH_hive_schema_version: "1.1.0"
+CDH_shark_version: "1.5.5"
+
+polaris_versions:
+  aif_360_load_version:                         "@@installVersion@@"
+  aif_azure_storage_version:                    "@@installVersion@@"
+  aif_brickhouse_version:                       "@@installVersion@@"
+  aif_bronto_version:                           "@@installVersion@@"
+  aif_bulk_dw_version:                          "@@installVersion@@"
+  aif_bulk_version:                             "@@installVersion@@"
+  aif_cheetah_version:                          "@@installVersion@@"
+  aif_common_connectors_version:                "@@installVersion@@"
+  aif_core_version:                             "@@installVersion@@"
+  aif_euro_message_version:                     "@@installVersion@@"
+  aif_exacttarget_version:                      "@@installVersion@@"
+  aif_facebook_version:                         "@@installVersion@@"
+  aif_facebook_offline_version:                 "@@installVersion@@"
+  aif_google_analytics_4_version:               "@@installVersion@@"
+  aif_googleads_offline_version:                "@@installVersion@@"
+  aif_googleanalytics_version:                  "@@installVersion@@"
+  aif_google_cloud_storage_version:             "@@installVersion@@"
+  aif_google_customer_match_version:            "@@installVersion@@"
+  aif_hive_kafka_version:                       "@@installVersion@@"
+  aif_kafka_output_version:                     "@@installVersion@@"
+  aif_kafka_version:                            "@@installVersion@@"
+  aif_kafka_rt_version:                         "@@installVersion@@"
+  aif_kafka_sf_version:                         "@@installVersion@@"
+  aif_kafka_rt_sf_version:                      "@@installVersion@@"
+  aif_listrak_version:                          "@@installVersion@@"
+  aif_mautic_version:                           "@@installVersion@@"
+  aif_mailer_version:                           "@@installVersion@@"
+  aif_responsys_version:                        "@@installVersion@@"
+  aif_s3_version:                               "@@installVersion@@"
+  aif_selligent_version:                        "@@installVersion@@"
+  aif_sftp_version:                             "@@installVersion@@"
+  aif_silverpop_version:                        "@@installVersion@@"
+  aif_webtag_s3_version:                        "@@installVersion@@"
+  audience_executor_version:                    "@@installVersion@@"
+  cacheapi_version:                             "@@installVersion@@"
+  campaign_executor_spark_version:              "@@installVersion@@"
+  campaign_status_consumer_version:             "@@installVersion@@"
+  campaignapi_version:                          "@@installVersion@@"
+  campaignexecutor_version:                     "@@installVersion@@"
+  campaignhistoryexecutor_version:              "@@installVersion@@"
+  configapi_version:                            "@@installVersion@@"
+  data_export_executor_version:                 "@@installVersion@@"
+  def_api_models_version:                       "@@installVersion@@"
+  dwapi_version:                                "@@installVersion@@"
+  edge_update_service_version:                  "@@installVersion@@"
+  hbase_backup_runner_version:                  "@@installVersion@@"
+  emailable_pages_api_version:                  "@@installVersion@@"
+  emailable_pages_consumer_version:             "@@installVersion@@"
+  mailer_history_producer_version:              "@@installVersion@@"
+  mailer_models_version:                        "@@installVersion@@"
+  mailer_rest_api_version:                      "@@installVersion@@"
+  mailer_status_consumer_version:               "@@installVersion@@"
+  mailer_transactional_consumer_version:        "@@installVersion@@"
+  mautic_webhooks_version:                      "@@installVersion@@"
+  looker_api_version:                           "@@installVersion@@"
+  ml_clustering_version:                        "@@installVersion@@"
+  ml_data_assembly_version:                     "@@installVersion@@"
+  ml_propensity_version:                        "@@installVersion@@"
+  ml_recommendations_version:                   "@@installVersion@@"
+  permissions_api_version:                      "@@installVersion@@"
+  platform_models_version:                      "@@installVersion@@"
+  platform_orchestration_version:               "@@installVersion@@"
+  def_templates_version:                        "@@installVersion@@"
+  predictionsapi_version:                       "@@installVersion@@"
+  report_executor_oozie_version:                "@@installVersion@@"
+  screencaptureapi_version:                     "@@installVersion@@"
+  security_models_version:                      "@@installVersion@@"
+  security_service_version:                     "@@installVersion@@"
+  self_service_api_version:                     "@@installVersion@@"
+  spam_score_api_version:                       "@@installVersion@@"
+  statusapi_version:                            "@@installVersion@@"
+  udf_extentions_version:                       "@@installVersion@@"
+  udmplus_version:                              "@@installVersion@@"
+  ui_config_version:                            "@@installVersion@@"
+  ui_vega_version:                              "@@installVersion@@"
+  ui_webtag_polaris_version:                    "@@installVersion@@"
+  workflow_executor_version:                    "@@installVersion@@"
+  workflow_provision_version:                   "@@installVersion@@"
+  workflow_status_consumer_version:             "@@installVersion@@"
+  workflow_status_producer_version:             "@@installVersion@@"
+  sf_procs_java_version:                        "@@installVersion@@"
+  snowflake_tenant_migration_version:           "@@installVersion@@"
+
+#CDH Upgraded
+cdh_upgraded: 'yes'
+#blue_mysql: 'yes'
+ml_x: 'yes'
+metastore_db: 'metastore'
+hive_metastore_server: 'prod-rds.us-1.rds.amazonaws.com'
+
+# Zookeeper
+zookeeper_client_port: 2181
+
+# Atscale ports
+atscale_designapi_port: '10500'
+atscale_engineapi_port: '10502'
+
+
+
+mysql_port: '3306'
+kafka_broker_port: '9092'
+zookeeper_port: '2181'
+
+
+# Agilone ports - UI
+ui_config_port: '80'
+ui_vega_port: '80'
+saiku_http_port: '8080'
+ui_http_proto: 'https'
+
+#DNS Resolver
+google_primary: "8.8.8.8"
+google_secondary: "8.8.4.4"
+cloudflare_primary: "1.1.1.1"
+cloundflare_secondary: "1.0.0.1"
+
+# DNS names
+dns_commonAPIs: "api.com"
+dns_commonAPIs_blue: "api.com"
+dns_configAPI: "configapi.com"
+dns_API: "api.com"
+dns_API_blue: "api.com"
+dns_authorizationAPI: "aut.com"
+dns_imagesHost: "images.com"
+dns_interactiveQueryHost: "query.com"
+dns_scriptsHost: "script.com"
+dns_ui_config: "configui.com"
+dns_ui_vega: "hub.com"
+dns_dxp_web_cdp: "https://dxp.io/"
+dns_mc_web_config: "mc.io"
+dns_ui_config_blue: “confi.com”
+dns_ui_vega_blue: “hu.com”"
+dns_atscale: "data.com"
+dns_mailerWebhookAPI: "webhook.com"
+dns_lulu_authorizationAPI: "aut.com"
+dns_predictionsAPI: "conten.com"
+dns_unsubscribeHost: "mhoo.com"
+dns_screencapture: "http://elb.amazonaws.com"
+dns_metricsAPI: "mc.io"
+dns_mauticWebhooksAPI: "maut.com"
+
+# Unsubscribe
+mix_panel_env: "prod"
+
+#log4j appender vars
+log4j_max_file_size: '200MB'
+log4j_max_backup_index: '10'
+log4j_logging_env: 'prod-us-green'
+
+# Nginx
+nginx_custom_404_root: "/usr/share/nginx/html"
+nginx_custom_404_page: "custom_404.html"
+nginx_custom_50x_root: "/usr/share/nginx/html"
+nginx_custom_50x_page: "custom_50x.html"
+
+# Zeppelin
+zeppelin_http_port: '8080'
+
+# Poster
+ml_poster_ip: 'ip'
+ml_poster_port: '8080'
+
+# TrackerAPI ELB URL:
+trackerapi_elb_url: 'elb.us-1.amazonaws.com'
+
+# ACS Webhook ELB URL:
+acs_webhook_api_elb_url: 'elb.us-1.amazonaws.com'
+
+# EFS
+efs_us_melissa: 'fs.amazonaws.com:/'
+efs_global_melissa: ''
+
+# Instana
+instana_zone: "green"
+
+# Site config
+ui_config_site:
+  #[hidden]
+
+
+
+# CDH Subnet for mysql whitelist
+cdh_subnet:
+  - "cdh_subnet"
+dw_subnet:
+  - "dw_subnet"
+
+# Windows Server Nagios Config
+
+
+#log4j
+log_stdout_conversion_pattern: "%d{yyyy-MM-dd HH:mm:ss,SSS}-%t-%x-%-5p-%-10c:%m%n"
+iq_rt_global_user_role: "A1SF_ROLE_101_0_RT"
+
+
+
+
+#DW Tracker - Self-Service
+dw_role_name: Tracker
+dw_authentication_url: https://aut.com/authentication?action=login
+dw_host_url: https://api.com/v2/{tenantID}/dw/tracker
+
+#360 Profiles - Self-Service
+p360_role_name: A360
+p360_authentication_url: https://aut.com/authentication?action=login
+p360_host_url: https://ap.com/v2/{tenantID}/dw/a360/customers
+
+# S3 Self-Service
+s3_provision_service_s3_bucket_name: 101-service
+s3_provision_service_aws_s3_region: us-1
+
+# SFTP - Self-Service
+sftp_remote_host: ip
+sftp_remote_port: 22
+sftp_remote_session_timeout: 500000
+sftp_remote_channel_timeout: 50000
+sftp_default_host:
+
+#ConfigAPI snowflake properties
+sf_env_id: 101
+sf_account: us-east-1
+sf_database: A1SF_DB_{{ sf_env_id }}_0
+sf_user: A1SF_USER_{{ sf_env_id }}_PROVISIONER
+sf_warehouse: A1SF_WH_{{ sf_env_id }}_PROVISIONER
+sf_schema: STREAMING
+sf_config_role: A1SF_ROLE_{{ sf_env_id }}_PROVISIONER
+sf_provisioner_user_password: "{{ provisioner_api_sf_passwd }}"

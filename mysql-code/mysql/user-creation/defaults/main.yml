@@ -1,0 +1,387 @@
+---
+verify: True
+
+db_node: "localhost"
+mySQL_admin_user_to_use: "{{ mySQL_cluster_admin_user }}"
+mySQL_admin_pass_to_use: "{{ mySQL_cluster_admin_pass }}"
+
+# MySQL users for 'mysql-user-creation' role
+sql_users:
+ #platform-models:
+ - user_name: "{{ platform_models_mysql_user }}"
+   password: "{{ platform_models_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['platform-models'] | default([])}}"
+   network: []
+#security_models:
+ - user_name: "{{ security_models_mysql_user }}"
+   password: "{{ security_models_mysql_password }}"
+   db_name: security
+   group: "{{ groups['security_models'] | default([])}}"
+   network: []
+#def-api-models:
+ - user_name: "{{ def_api_models_mysql_user }}"
+   password: "{{ def_api_models_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['def-api-models'] | default([])}}"
+   network: []
+ #platform-orchestration:
+ - user_name: "{{ platform_orchestration_mysql_user }}"
+   password: "{{ platform_orchestration_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['cdh5_node_manager'] | union(groups['cdh5_hive_server']) | union(groups['cdh5_oozie_server']) | default([])}}"
+   network: "{{cdh_subnet}}"
+ #aif-kafka-rt:
+ - user_name: "{{ aif_kafka_rt_mysql_user }}"
+   password: "{{ aif_kafka_rt_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['cdh5_node_manager'] | union(groups['cdh5_hive_server']) | union(groups['cdh5_oozie_server']) | default([])}}"
+   network: "{{cdh_subnet}}"
+ #aif-kafka-rt-jdbc:
+ - user_name: "{{ aif_kafka_rt_jdbc_mysql_user }}"
+   password: "{{ aif_kafka_rt_jdbc_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['cdh5_node_manager'] | union(groups['cdh5_hive_server']) | union(groups['cdh5_oozie_server']) | default([])}}"
+   network: "{{cdh_subnet}}"
+ #def-templates:
+ - user_name: "{{ def_templates_mysql_user }}"
+   password: "{{ def_templates_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['def_templates'] | default([])}}"
+   network: []
+ #oozie:
+ - user_name: "{{ oozie_mysql_user }}"
+   password: "{{ oozie_mysql_passwd }}"
+   db_name: oozie
+   group: "{{ groups['cdh5_oozie_server'] | default([]) }}"
+   network: []
+ #hive:
+ - user_name: "{{ hive_mysql_user }}"
+   password: "{{ hive_mysql_passwd }}"
+   db_name: metastore
+   group: "{{ groups['cdh5_hive_client'] | union(groups['cdh5_hive_server']) | default([]) }}"
+   network: []
+#permissions-api:
+ - user_name: "{{ permissions_api_mysql_user }}"
+   password: "{{ permissions_api_mysql_password }}"
+   db_name: security
+   group: "{{ groups['permissions-api'] | default([]) }}"
+   network: []
+#permissions_api_polaris
+ - user_name: "{{ permissions_api_polaris_mysql_user }}"
+   password: "{{ permissions_api_polaris_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['permissions-api'] | default([]) }}"
+   network: []
+#security_service
+ - user_name: "{{ security_service_mysql_user }}"
+   password: "{{ security_service_mysql_password }}"
+   db_name: security
+   group: "{{ groups['security-service'] | default([]) }}"
+   network: []
+#security_service_polaris
+ - user_name: "{{ security_service_polaris_mysql_user }}"
+   password: "{{ security_service_polaris_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['security-service'] | default([]) }}"
+   network: []
+#configapi
+ - user_name: "{{ configapi_mysql_user }}"
+   password: "{{ configapi_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['configapi'] | default([]) }}"
+   network: []
+#configapi_security
+ - user_name: "{{ configapi_security_mysql_user }}"
+   password: "{{ configapi_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['configapi'] | default([]) }}"
+   network: []
+#spamscoreapi
+ - user_name: "{{ spamscoreapi_mysql_user }}"
+   password: "{{ spamscoreapi_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['spam-score-api'] | default([]) }}"
+   network: []
+#spamscoreapi_security
+ - user_name: "{{ spamscoreapi_security_mysql_user }}"
+   password: "{{ spamscoreapi_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['spam-score-api'] | default([]) }}"
+   network: []
+#dw api
+ - user_name: "{{ dwapi_mysql_user }}"
+   password: "{{ dwapi_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['dwapi'] | default([]) }}"
+   network: "{{dw_subnet}}"
+#dwapi_security
+ - user_name: "{{ dwapi_security_mysql_user }}"
+   password: "{{ dwapi_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['dwapi'] | default([]) }}"
+   network: "{{dw_subnet}}"
+#dwapi_defs
+ - user_name: "{{ dwapi_defs_mysql_user }}"
+   password: "{{ dwapi_defs_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['dwapi'] | default([]) }}"
+   network: "{{dw_subnet}}"
+#ml-data-assembly
+ - user_name: "{{ ml_data_assembly_mysql_user }}"
+   password: "{{ ml_data_assembly_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['cdh5_node_manager'] | default([]) }}"
+   network: "{{cdh_subnet}}"
+#campaignapi
+ - user_name: "{{ campaignapi_mysql_user }}"
+   password: "{{ campaignapi_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['campaignapi'] | default([]) }}"
+   network: []
+#campaignapi_security
+ - user_name: "{{ campaignapi_security_mysql_user }}"
+   password: "{{ campaignapi_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['campaignapi'] | default([]) }}"
+   network: []
+#platform-aifout
+ - user_name: "{{ platform_def_mysql_user }}"
+   password: "{{ platform_def_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['cdh5_node_manager'] | union(groups['cdh5_hive_server']) | union(groups['cdh5_oozie_server']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#campaignapi polaris_metadata
+ - user_name: "{{ campaignapi_polaris_mysql_user }}"
+   password: "{{ campaignapi_polaris_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['campaignapi'] | default([]) }}"
+   network: []
+#statusapi
+ - user_name: "{{ statusapi_mysql_user }}"
+   password: "{{ statusapi_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['statusapi'] | default([]) }}"
+   network: []
+#statusapi polaris_metadata
+ - user_name: "{{ statusapi_mysql_meta_user }}"
+   password: "{{ statusapi_mysql_meta_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['statusapi'] | default([]) }}"
+   network: []
+#statusapi security
+ - user_name: "{{ statusapi_mysql_security_user }}"
+   password: "{{ statusapi_mysql_security_password }}"
+   db_name: security
+   group: "{{ groups['statusapi'] | default([]) }}"
+   network: []
+#campaign-status-consumer
+ - user_name: "{{ campstatus_mysql_user }}"
+   password: "{{ campstatus_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['campaign-status-consumer'] | default([]) }}"
+   network: []
+#workflow-executor
+ - user_name: "{{ wfexec_mysql_user }}"
+   password: "{{ wfexec_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['workflow-executor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#campaignexecutor_metadata
+ - user_name: "{{ campaignExecutor_metadata_mysql_user }}"
+   password: "{{ campaignExecutor_metadata_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['campaignexecutor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#campaignexecutor_defs
+ - user_name: "{{ campaignExecutor_defs_mysql_user }}"
+   password: "{{ campaignExecutor_defs_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['campaignexecutor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#campaignexecutor_security
+ - user_name: "{{ campaignExecutor_security_mysql_user }}"
+   password: "{{ campaignExecutor_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['campaignexecutor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#campaignhistoryexecutor_metadata
+ - user_name: "{{ campaignhistoryexecutor_metadata_mysql_user }}"
+   password: "{{ campaignhistoryexecutor_metadata_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['campaignhistoryexecutor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#campaignhistoryexecutor_defs
+ - user_name: "{{ campaignhistoryexecutor_defs_mysql_user }}"
+   password: "{{ campaignhistoryexecutor_defs_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['campaignhistoryexecutor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#dataexportexecutor_metadata
+ - user_name: "{{ dataexportexecutor_metadata_mysql_user }}"
+   password: "{{ dataexportexecutor_metadata_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['data-export-executor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#dataexportexecutor_defs
+ - user_name: "{{ dataexportexecutor_defs_mysql_user }}"
+   password: "{{ dataexportexecutor_defs_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['data-export-executor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#dataexportexecutor_security
+ - user_name: "{{ dataexportexecutor_security_mysql_user }}"
+   password: "{{ dataexportexecutor_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['data-export-executor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#workflow-provision
+ - user_name: "{{ wfprovision_mysql_user }}"
+   password: "{{ wfprovision_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['workflow-provision'] | default([]) }}"
+   network: []
+#workflow-status-consumer
+ - user_name: "{{ wfstatusconsumer_mysql_user }}"
+   password: "{{ wfstatusconsumer_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['workflow-status-consumer'] | default([]) }}"
+   network: []
+#mailer-models
+ - user_name: "{{ mailer_mysql_user }}"
+   password: "{{ mailer_mysql_password }}"
+   db_name: a1mailer
+   group: "{{ groups['mailer-models'] | default([]) }}"
+   network: []
+#mailer-history-producer
+ - user_name: "{{ mailer_history_mysql_user }}"
+   password: "{{ mailer_history_mysql_password }}"
+   db_name: a1mailer
+   group: "{{ groups['mailer-history-producer'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#mailer-rest-api
+ - user_name: "{{ mailer_rest_mysql_user }}"
+   password: "{{ mailer_rest_mysql_password }}"
+   db_name: a1mailer
+   group: "{{ groups['mailer-rest-api'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#hue
+ - user_name: "{{ hue_mysql_user }}"
+   password: "{{ hue_mysql_password }}"
+   db_name: hue
+   group: "{{ groups['cdh5_hue'] | default([]) }}"
+   network: []
+#mailerrestapi  polaris_metadata
+ - user_name: "{{ mailerrestapi_polaris_mysql_user }}"
+   password: "{{ mailerrestapi_polaris_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['mailer-rest-api'] | default([]) }}"
+   network: []
+#cacheapi polaris_metadata
+ - user_name: "{{ cacheapi_polaris_mysql_user }}"
+   password: "{{ cacheapi_polaris_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['cacheapi'] | default([]) }}"
+   network: []
+#cacheapi security
+ - user_name: "{{ cacheapi_security_mysql_user }}"
+   password: "{{ cacheapi_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['cacheapi'] | default([]) }}"
+   network: []
+#reportexecutor_metadata
+ - user_name: "{{ reportexecutoroozie_metadata_mysql_user }}"
+   password: "{{ reportexecutoroozie_metadata_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['report-executor-oozie'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#reportexecutor_defs
+ - user_name: "{{ reportexecutoroozie_defs_mysql_user }}"
+   password: "{{ reportexecutoroozie_defs_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['report-executor-oozie'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#reportexecutor_security
+ - user_name: "{{ reportexecutoroozie_security_mysql_user }}"
+   password: "{{ reportexecutoroozie_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['report-executor-oozie'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#mailer-status-consumer
+ - user_name: "{{ mailer_status_mysql_user }}"
+   password: "{{ mailer_status_mysql_password }}"
+   db_name: a1mailer
+   group: "{{ groups['mailer-status-consumer'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#ml-clustering
+ - user_name: "{{ ml_clustering_mysql_user }}"
+   password: "{{ ml_clustering_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['ml-clustering'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#ml-recommendations
+ - user_name: "{{ ml_recommendations_mysql_user }}"
+   password: "{{ ml_recommendations_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['ml-recommendations'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#ml-propensity
+ - user_name: "{{ ml_propensity_mysql_user }}"
+   password: "{{ ml_propensity_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['ml-propensity'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#mailer-rest-api-security
+ - user_name: "{{ mailer_rest_mysql_security_user }}"
+   password: "{{ mailer_rest_mysql_security_password }}"
+   db_name: security
+   group: "{{ groups['mailer-rest-api'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#emailable-pages-api-security
+ - user_name: "{{ emailable_rest_mysql_security_user }}"
+   password: "{{ emailable_rest_mysql_security_password }}"
+   db_name: security
+   group: "{{ groups['emailable-pages-api'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#emailable-pages-api  polaris_metadata
+ - user_name: "{{ emailablepagesapi_polaris_mysql_user }}"
+   password: "{{ emailablepagesapi_polaris_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['emailable-pages-api'] | default([]) }}"
+   network: []
+#emailable-pages-consumer  polaris_metadata
+ - user_name: "{{ emailablepagesconsumer_polaris_mysql_user }}"
+   password: "{{ emailablepagesconsumer_polaris_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['emailable-pages-consumer'] | default([]) }}"
+   network: []
+#audience_executor_metadata
+ - user_name: "{{ audienceExecutor_metadata_mysql_user }}"
+   password: "{{ audienceExecutor_metadata_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['audience-executor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#audience_executor_defs
+ - user_name: "{{ audienceExecutor_defs_mysql_user }}"
+   password: "{{ audienceExecutor_defs_mysql_password }}"
+   db_name: polaris_defs
+   group: "{{ groups['audience-executor'] | union(groups['cdh5_node_manager']) | default([]) }}"
+   network: "{{cdh_subnet}}"
+#mautic-webhooks  polaris_metadata
+ - user_name: "{{ mautic_webhooks_mysql_user }}"
+   password: "{{ mautic_webhooks_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['mautic-webhooks'] | default([]) }}"
+   network: []
+#selfserviceapi  polaris_metadata
+ - user_name: "{{ selfserviceapi_mysql_user }}"
+   password: "{{ selfserviceapi_mysql_password }}"
+   db_name: polaris_metadata
+   group: "{{ groups['self-service-api'] | default([]) }}"
+   network: []
+#selfserviceapi_security security
+ - user_name: "{{ selfserviceapi_security_mysql_user }}"
+   password: "{{ selfserviceapi_security_mysql_password }}"
+   db_name: security
+   group: "{{ groups['self-service-api'] | default([]) }}"
+   network: []

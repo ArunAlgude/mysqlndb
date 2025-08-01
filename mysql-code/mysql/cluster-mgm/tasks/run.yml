@@ -1,0 +1,170 @@
+---
+- include_vars: environments/{{ inventory_file | basename }}/group_vars/credentials.yml
+  tags: always
+  
+- name: Gather old MySQL files
+  shell: ls -d /usr/local/mysql-cluster-gpl*
+  register: old_MySQL_files
+  ignore_errors: True
+  changed_when: False
+
+- name: Download MySQL-Cluster binaries
+  get_url:
+    url: "{{ mySQLclusterDownloadLink }}"
+    dest: /usr/local/{{ mySQLclusterArchiveFileName }}
+    url_username: "{{ artifactory_publicUser }}"
+    url_password: "{{ artifactory_publicPass }}"
+    sha256sum: "{{ mySQLClusterArchiveSHA_256 }}"
+  register: new_mysql_cluster_downloaded
+  become: yes
+
+- name: Extract MySQL-Cluster binaries
+  unarchive:
+    src: /usr/local/{{ mySQLclusterArchiveFileName }}
+    dest: /usr/local
+    copy: no
+    creates: /usr/local/{{ mySQLclusterFileName }}
+  become: yes
+
+- name: Check if MySQL management node process is running
+  shell: pgrep -x 'ndb_mgmd'
+  register: ndb_mgmd_pid
+  ignore_errors: True
+  changed_when: False
+- set_fact:
+    ndb_mgmd_is_running: True
+  when: "ndb_mgmd_pid.rc == 0"
+- set_fact:
+    ndb_mgmd_is_running: False
+  when: "ndb_mgmd_pid.rc != 0"
+
+- set_fact:
+    isUpgrade: False
+- set_fact:
+    isUpgrade: True
+  when: ndb_mgmd_is_running and new_mysql_cluster_downloaded.changed
+
+- name: Kill MySQL management node process if upgrading
+  shell: ndb_mgm -e shutdown
+  become_user: mysql
+  register: killed_MySQL_mgmd
+  when: new_mysql_cluster_downloaded.changed and ndb_mgmd_is_running
+
+# ndb_mgm -e shutdown executes the command and exits before it is complete
+# Because of that we need to run a loop to make sure the process has shut down
+- name: Make sure MySQL management node process is not running
+  shell: pgrep -x 'ndb_mgmd'
+  register: ndb_mgmd_pid_afterKill
+  ignore_errors: True
+  changed_when: False
+  when: new_mysql_cluster_downloaded.changed and ndb_mgmd_is_running
+  until: "ndb_mgmd_pid_afterKill.rc != 0"
+  retries: 15
+  delay: 5
+- set_fact: ndb_mgmd_is_running=False
+  when: new_mysql_cluster_downloaded.changed and ndb_mgmd_is_running and "ndb_mgmd_pid_afterKill.rc != 0"
+
+- name: Delete old ndb_mgm binaries
+  file: path=/usr/local/bin/{{ item }} state=absent
+  become: yes
+  with_items:
+    - ndb_mgm
+    - ndb_mgmd
+  when: isUpgrade
+
+- name: Create mysql group
+  group: name=mysql state=present
+  become: yes
+
+- name: Create mysql user in mysql group
+  user: name=mysql state=present group=mysql home=/home/mysql shell=/bin/bash
+  become: yes
+
+- name: Set ulimit for mysql user.
+  lineinfile:
+    dest: "{{ item }}"
+    line: "mysql  - nofile  {{ mysql_openfile_limit }}"
+    state: present
+    create: yes
+  become: yes
+  with_items:
+    - /etc/security/limits.d/mysql.conf
+
+- name: Update repositories
+  apt: update_cache=yes cache_valid_time=600
+  become: yes
+
+- name: Install Linux kernel AIO access library
+  apt: pkg=libaio1 state=present
+  become: yes
+
+- name: Copy ndb_mgm binaries to /usr/local/bin
+  shell: cp /usr/local/{{ mySQLclusterFileName }}/bin/{{ item }} /usr/local/bin creates=/usr/local/bin/{{ item }}
+  become: yes
+  with_items:
+    - ndb_mgm
+    - ndb_mgmd
+
+- name: Change mode on ndb_mgm binaries
+  file: path=/usr/local/bin/{{ item }} mode="a+x"
+  become: yes
+  with_items:
+    - ndb_mgm
+    - ndb_mgmd
+
+- name: Create /data/mysql_mgm
+  file: path=/data/mysql_mgm state=directory recurse=yes group=mysql owner=mysql
+  become: yes
+
+- name: Copy config
+  template:
+    src: config.ini.j2
+    dest: /data/mysql_mgm/config.ini
+  register: mysql_mgm_config
+  become: yes
+
+- set_fact:
+    MySQL_CONFIG_UPDATED: False
+
+- name: Set fact for config upgrade
+  set_fact:
+    MySQL_CONFIG_UPDATED: True
+  when: mysql_mgm_config.changed
+
+- name: Install init file
+  template:
+    src: ndb_mgmd_init.j2
+    dest: /etc/init.d/ndbmgmd
+    mode: 0755
+  become: yes
+
+- name: Delete old MySQL files after upgrade
+  file: path={{ item }} state=absent
+  with_items: "{{ old_MySQL_files.stdout_lines }}"
+  when: isUpgrade
+
+- name: Notify handler
+  shell: /bin/true
+  notify:
+    - restart mysql_mgm
+  when: (MySQL_CONFIG_UPDATED is defined and MySQL_CONFIG_UPDATED) or isUpgrade
+
+- meta: flush_handlers
+
+- name: Ensure MySQL management node is running
+  service:
+    name: ndbmgmd
+    enabled: yes
+    state: started
+  become: yes
+
+- name: Verify MySQL Management server is running
+  wait_for:
+    host: "{{ ansible_hostname }}"
+    port: 1186
+    state: started
+    timeout: 60
+  tags: verify
+
+- set_fact:
+    cluster_mgm_role_already_ran: True

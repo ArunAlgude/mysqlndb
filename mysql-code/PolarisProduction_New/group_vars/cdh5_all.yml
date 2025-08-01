@@ -1,0 +1,126 @@
+# Atscale Download info
+# Atscale installers come from http://files.atscale.com.s3.amazonaws.com
+
+# Warning: Remember to calculate SHA 256 for the archive
+atscaleArchiveSHA_256:
+
+# Nodes
+zookeeper_hosts: "{{ groups['cdh5_zookeeper'] }}"
+mysql_sql_nodes: "{{ groups['mysql_cluster_sql'] }}"
+
+cdh5_all_nodes: "{{ groups['cdh5_all'] }}"
+cdh5_name_nodes: "{{ groups['cdh5_name_node'] }}"
+cdh5_journal_node: "{{ groups['cdh5_journal_node'] }}"
+cdh5_hive_nodes: "{{ groups['cdh5_hive_client'] }}"
+cdh5_mapreduce_history_nodes: "{{ groups['cdh5_mapreduce_history'] }}"
+cdh5_resource_manager_nodes: "{{ groups['cdh5_resource_manager'] }}"
+cdh5_oozie_server_nodes: "{{ groups['cdh5_oozie_server'] }}"
+cdh5_spark_master_nodes: "{{ groups['cdh5_spark_master'] }}"
+cdh5_spark_history_server_nodes: "{{ groups['cdh5_spark_history_server'] }}"
+
+# General settings
+tl_domain: .com
+cdh5_hdfs_common_user: ""
+cdh5_hdfs_users:
+
+
+# hadoop-env.sh
+hdfs_heap_mb: 10240
+
+# core-site_xml
+nameservice_id: nameservice1
+fs_trash_interval: 1440
+fs_defaultFS_port: 8020
+
+# hdfs-site_xml
+dfs_permissions_superusergroup: hadoop
+dfs_permissions_enabled: 'true'
+dfs_replication: 1
+dfs_domain_socket_path: /var/hadoop/hdfs-sockets
+dfs_namenode_name_dir:
+  - /var/hadoop/data/1/dfs/nn
+  - /var/hadoop/data/2/dfs/nn
+dfs_datanode_data_dir:
+  - /var/hadoop/data/1/dfs/dn
+  - /var/hadoop/data/2/dfs/dn
+  - /var/hadoop/data/3/dfs/dn
+  - /var/hadoop/data/4/dfs/dn
+dfs_journalnode_edits_dir: /var/hadoop/data/1/dfs/jn
+dfs_blocksize: 134217728
+dfs_namenode_handler_count: 256
+dfs_datanode_handler_count: 32
+dfs_datanode_du_reserved: 0
+dfs_balance_bandwidthPerSec: 1048576
+dfs_hosts_exclude: /etc/hadoop/conf.{{ nameservice_id }}/datanodes.exclude
+dfs_datanode_max_transfer_threads: 4096
+dfs_datanode_balanced_space_threshold: 10737418240
+dfs_datanode_balanced_space_preference_fraction: 0.75
+dfs_datanode_max_xcievers: 4096
+dfs_checksum_type: CRC32
+
+# yarn-env.sh
+yarn_heap_mb: 10240
+
+# mapred-site_xml
+mapreduce_map_memory_mb: 6144
+mapreduce_reduce_memory_mb: 8192
+mapreduce_map_java_opts: '-Xmx5120m'
+mapreduce_reduce_java_opts: '-Xmx7168m'
+mapreduce_jobtracker_handler_count: 128
+mapreduce_reduce_slowstart: '0.8'
+mapreduce_job_counter_counter_name_max: '256'
+
+# yarn-site_xml
+yarn_nodemanager_local_dirs:
+  - /var/hadoop/data/1/yarn/local
+  - /var/hadoop/data/2/yarn/local
+  - /var/hadoop/data/3/yarn/local
+  - /var/hadoop/data/4/yarn/local
+yarn_nodemanager_log_dirs:
+  - /var/hadoop/data/1/yarn/logs
+  - /var/hadoop/data/2/yarn/logs
+  - /var/hadoop/data/3/yarn/logs
+  - /var/hadoop/data/4/yarn/logs
+yarn_nodemanager_remote_log_dir: /var/log/hadoop-yarn
+yarn_nodemanager_remote_app_log_dir: 'hdfs://{{ nameservice_id }}:8020{{ yarn_nodemanager_remote_log_dir }}/apps'
+yarn_nodemanager_vmem_pmem_ratio: 10
+yarn_nodemanager_resource_cpu_cores: '{{ 8 if not (ansible_processor_vcpus * 0.8)|round|int > 8 else (ansible_processor_vcpus * 0.8)|round|int }}'
+yarn_nodemanager_resource_memory_mb: '{{ 8192 if not (ansible_memtotal_mb * 0.8)|round|int > 8192 else (ansible_memtotal_mb * 0.8)|round|int }}'
+yarn_nodemanager_pmem_check_enabled: 'true'
+yarn_nodemanager_vmem_check_enabled: 'true'
+yarn_scheduler_maximum_allocation_mb: 30720
+yarn_hue_queue_memory: '{{(ansible_memtotal_mb * 0.8 * 0.5 * (groups["cdh5_node_manager"] | length ))|round|int }}'
+yarn_hue_queue_cores: '{{(ansible_processor_vcpus * 0.8 * 0.5 * (groups["cdh5_node_manager"] | length ))|round|int }}'
+
+# zoo.cfg
+zookeeper_tick_time: 2000
+zookeeper_data_dir: /var/zookeeper
+zookeeper_client_port: 2181
+zookeeper_init_limit: 5
+zookeeper_sync_limit: 2
+zookeeper_max_client_connections: 200
+
+# mapred-site.xml
+yarn_app_mapreduce_am_staging_dir: /user
+
+# hbase-env.sh
+hbase_heap_mb: 10240
+
+# Hue Webserver listens on this address and port
+hue_http_host: "0.0.0.0"
+hue_http_port: "8888"
+hue_init_config: "/etc/hadoop/HUE_init"
+
+# Spark-defaults.conf
+spark_eventlog_dir: '/user/spark/applicationHistory'
+spark_history_ui_port: '18082'
+cdh5_spark_worker_memory: "{{ (hostvars[groups['cdh5_spark_worker'][0]]['ansible_memtotal_mb'] * 0.8)|round|int }}m"
+cdh5_spark_daemon_memory: "2048m"
+spark_driver_cores: "{{ (ansible_processor_vcpus * 0.8)|round|int }}"
+spark_driver_memory: "{{ (ansible_memtotal_mb * 0.15)|round|int }}m"
+spark_executor_memory: "{{ (ansible_memtotal_mb * 0.8)|round|int }}m"
+spark_cores_max: "32"
+
+# Shark settings
+cdh5_shark_memory: "{{ (ansible_memtotal_mb * 0.8)|round|int }}m"
+melissa_jars_path: "/usr/lib/melissa/"

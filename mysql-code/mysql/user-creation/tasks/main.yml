@@ -1,0 +1,6 @@
+- debug:
+    msg: "Role execution being skipped as it has run already."
+  when: user_creation_role_already_ran is defined and user_creation_role_already_ran
+
+- include: run.yml
+  when: user_creation_role_already_ran is undefined or not user_creation_role_already_ran

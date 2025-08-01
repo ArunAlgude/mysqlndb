@@ -1,0 +1,6 @@
+- name: restart ndbd
+  service:
+    name: ndbd
+    state: restarted
+    enabled: yes
+  become: yes

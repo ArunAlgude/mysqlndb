@@ -1,0 +1,82 @@
+[NDB_MGMD DEFAULT]
+Portnumber=1186
+DataDir=/data/mysql_mgm/
+
+{% for host in groups["mysql_cluster_mgm"] %}
+[NDB_MGMD]
+NodeId={{ hostvars[host].mySQL_MgmNode_ID }}
+HostName={{ hostvars[host].ansible_default_ipv4.address }}
+DataDir=/data/mysql_mgm/
+Portnumber=1186
+{% endfor %}
+
+[TCP DEFAULT]
+SendBufferMemory=8M
+ReceiveBufferMemory=8M
+
+[NDBD DEFAULT]
+BackupMaxWriteSize=1M
+BackupDataBufferSize=16M
+BackupLogBufferSize=4M
+BackupMemory=20M
+BackupReportFrequency=10
+MemReportFrequency=30
+LogLevelStartup=15
+LogLevelShutdown=15
+LogLevelCheckpoint=8
+LogLevelNodeRestart=15
+{# DataMemory needs to be 80% of system memory, IndexMemory 10% of DataMemory #}
+{# If all SQL nodes are one one machine, use 20% #}
+{% if (groups['mysql_cluster_mgm'][0] in groups['mysql_cluster_data']) and (groups['mysql_cluster_mgm'][0] in groups['mysql_cluster_sql']) %}
+DataMemory={{ (hostvars[groups.mysql_cluster_data[0]].ansible_memtotal_mb * 0.2)|round|int }}M
+IndexMemory={{ (hostvars[groups.mysql_cluster_data[0]].ansible_memtotal_mb * 0.02)|round|int }}M
+{% else %}
+DataMemory={{ (hostvars[groups.mysql_cluster_data[0]].ansible_memtotal_mb * 0.75)|round|int }}M
+IndexMemory={{ (hostvars[groups.mysql_cluster_data[0]].ansible_memtotal_mb * 0.075)|round|int }}M
+{% endif %}
+MaxNoOfTables=4096
+MaxNoOfAttributes=409600
+MaxNoOfOrderedIndexes=1024
+MaxNoOfTriggers=3500
+{% if groups['mysql_cluster_data'][1] is undefined %}
+NoOfReplicas=1
+{% else %}
+NoOfReplicas=2
+{% endif %}
+StringMemory=25
+DiskPageBufferMemory=64M
+SharedGlobalMemory=20M
+LongMessageBuffer=32M
+MaxNoOfConcurrentTransactions=16384
+MaxNoOfConcurrentOperations=100K
+MaxNoOfLocalOperations=110K
+BatchSizePerLocalScan=512
+FragmentLogFileSize=256M
+NoOfFragmentLogFiles=4
+RedoBuffer=64M
+MaxNoOfExecutionThreads=2
+StopOnError=false
+LockPagesInMainMemory=1
+TimeBetweenEpochsTimeout=32000
+TimeBetweenWatchdogCheckInitial=60000
+TransactionInactiveTimeout=60000
+HeartbeatIntervalDbDb=1500
+HeartbeatIntervalDbApi=1500
+
+
+{% for host in groups["mysql_cluster_data"] %}
+[NDBD]
+NodeId={{ hostvars[host].mySQL_DataNode_ID }}
+HostName={{ hostvars[host].ansible_default_ipv4.address }}
+DataDir=/data/mysql_data
+
+{% endfor %}
+
+[MYSQLD DEFAULT]
+
+{% for host in groups["mysql_cluster_sql"] %}
+[MYSQLD]
+NodeId={{ hostvars[host].mySQL_ClusterNode_ID }}
+HostName={{ hostvars[host].ansible_default_ipv4.address }}
+
+{% endfor %}

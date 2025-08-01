@@ -1,0 +1,41 @@
+- name: Apply default OS settings to all machines
+  hosts: mysql_cluster_all
+  roles:
+  - os-default-setup
+
+- name: Setup MySQL Management node
+  hosts: mysql_cluster_mgm
+  roles:
+  - mysql/cluster-mgm
+
+- name: Setup MySQL data nodes
+  hosts: mysql_cluster_data
+  roles:
+  - mysql/cluster-data
+
+- name: Setup MySQL SQL nodes
+  hosts: mysql_cluster_sql
+  roles:
+  - mysql/cluster-sql
+
+- hosts: mysql_cluster_mgm
+  tasks:
+  - name: Check for connected nodes and puts result into text file
+    shell: ndb_mgm --ndb-connectstring={{ ansible_default_ipv4.address }}:1186 -e show
+    become: yes
+    register: health_check
+    changed_when: False
+    tags: verify
+  - name: Unable to connect to some nodes. If task skipped, we are fine
+    fail: msg="Not all nodes are connected"
+    when: "'not connected' in health_check.stdout"
+    tags: verify
+
+- name: Check if MySQL Cluster is a single node & make appropriate changes to start-up configuration
+  hosts: mysql_cluster_mgm
+  roles:
+    - mysql/cluster-single-node
+  tags: mysql-cluster_single_node
+
+- include: mysql-user.yml
+  tags: mysql_create_users

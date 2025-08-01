@@ -1,0 +1,140 @@
+---
+- include_vars: environments/{{ inventory_file | basename }}/group_vars/credentials.yml
+  tags: always
+  
+- name: Gather old MySQL files
+  shell: ls -d /usr/local/mysql-cluster-gpl*
+  register: old_MySQL_files
+  ignore_errors: True
+  changed_when: False
+
+- name: Update repositories
+  apt: update_cache=yes cache_valid_time=600
+  become: yes
+
+- name: Install Linux kernel AIO access library
+  apt: pkg=libaio1 state=present
+  become: yes
+
+- name: Download MySQL-Cluster binaries
+  get_url:
+    url: "{{ mySQLclusterDownloadLink }}"
+    dest: /usr/local/{{ mySQLclusterArchiveFileName }}
+    url_username: "{{ artifactory_publicUser }}"
+    url_password: "{{ artifactory_publicPass }}"
+    sha256sum: "{{ mySQLClusterArchiveSHA_256 }}"
+  register: new_mysql_cluster_downloaded
+  become: yes
+
+- name: Extract MySQL-Cluster binaries
+  unarchive:
+    src: /usr/local/{{ mySQLclusterArchiveFileName }}
+    dest: /usr/local
+    copy: no
+    creates: /usr/local/{{ mySQLclusterFileName }}
+  become: yes
+
+- name: Check if MySQL data node process is running
+  command: pgrep -x 'ndbmtd'
+  register: ndbmtd_pid
+  ignore_errors: True
+  changed_when: False
+- set_fact:
+    ndbmtd_is_running: True
+  when: "ndbmtd_pid.rc == 0"
+- set_fact:
+    ndbmtd_is_running: False
+  when: "ndbmtd_pid.rc != 0"
+
+- debug: msg="Required {{ (ansible_memtotal_mb * 0.4)|round|int }} Available {{ ansible_memory_mb.nocache.free }}"
+
+- set_fact:
+    isUpgrade: False
+- set_fact:
+    isUpgrade: True
+  when: old_MySQL_files.rc == 0 and new_mysql_cluster_downloaded.changed
+
+- name: Kill MySQL data node process if upgrading
+  command: ndb_mgm --ndb-connectstring={{ groups.mysql_cluster_mgm[0] }}:1186 -e '{{ mySQL_DataNode_ID }} stop'
+  become_user: mysql
+  register: killed_MySQL_ndbmtd
+  when: (new_mysql_cluster_downloaded.changed == true) and ndbmtd_is_running
+- set_fact: ndbmtd_is_running=False
+  when: killed_MySQL_ndbmtd.changed
+
+- name: Create mysql group
+  group: name=mysql state=present
+  become: yes
+
+- name: Create mysql user in mysql group
+  user: name=mysql state=present group=mysql home=/home/mysql shell=/bin/bash
+  become: yes
+
+- name: Set ulimit for mysql user.
+  lineinfile:
+    dest: "{{ item }}"
+    line: "mysql  - nofile  {{ mysql_openfile_limit }}"
+    state: present
+    create: yes
+  become: yes
+  with_items:
+    - /etc/security/limits.d/mysql.conf
+
+- name: Delete old binaries
+  file: path=/usr/local/bin/{{ item }} state=absent
+  become: yes
+  with_items:
+    - ndbd
+    - ndbmtd
+    - ndb_mgm
+  when: isUpgrade
+
+- name: Copy ndbd binaries to /usr/local/bin
+  command: cp /usr/local/{{ mySQLclusterFileName }}/bin/{{ item }} /usr/local/bin creates=/usr/local/bin/{{item}}
+  become: yes
+  with_items:
+    - ndbd
+    - ndbmtd
+    - ndb_mgm
+
+- name: Change mode on ndb_mgm binaries
+  file: path=/usr/local/bin/{{ item }} mode="a+x"
+  become: yes
+  with_items:
+    - ndbd
+    - ndbmtd
+    - ndb_mgm
+
+- name: Create /data/mysql_data
+  file: path=/data/mysql_data state=directory recurse=yes group=mysql owner=mysql
+  become: yes
+
+- name: Install init file
+  template:
+    src: ndbd_init.j2
+    dest: /etc/init.d/ndbd
+    mode: 0755
+  become: yes
+
+- name: Delete old MySQL files after upgrade
+  file: path={{ item }} state=absent
+  with_items: "{{ old_MySQL_files.stdout_lines }}"
+  when: isUpgrade
+
+- name: Notify handler
+  shell: /bin/true
+  notify:
+    - restart ndbd
+  when: (hostvars[groups.mysql_cluster_sql[0]]['MySQL_CONFIG_UPDATED'] is defined and hostvars[groups.mysql_cluster_sql[0]]['MySQL_CONFIG_UPDATED']) or isUpgrade
+
+- meta: flush_handlers
+
+- name: Ensure MySQL data node will start on boot
+  service:
+    name: ndbd
+    state: started
+    enabled: yes
+  become: yes
+
+- set_fact:
+    cluster_data_role_already_ran: True

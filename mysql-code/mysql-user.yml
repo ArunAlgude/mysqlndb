@@ -1,0 +1,10 @@
+---
+- hosts: "all:!localhost"
+  tasks:
+    - name: Gather facts for referenced hosts
+      ping:
+
+- name: Create MySQL users
+  hosts: "{{ run_on_node|default('mysql_cluster_sql[0]')}}"
+  roles:
+    - mysql/user-creation

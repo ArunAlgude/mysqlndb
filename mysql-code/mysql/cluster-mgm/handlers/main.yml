@@ -1,0 +1,6 @@
+- name: restart mysql_mgm
+  service:
+    name: ndbmgmd
+    state: restarted
+    enabled: yes
+  become: yes

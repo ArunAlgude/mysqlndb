@@ -1,0 +1,6 @@
+- debug:
+    msg: "Role execution being skipped as it has run already."
+  when: cluster_mgm_role_already_ran is defined and cluster_mgm_role_already_ran    
+
+- include: run.yml
+  when: cluster_mgm_role_already_ran is undefined and not cluster_mgm_role_already_ran

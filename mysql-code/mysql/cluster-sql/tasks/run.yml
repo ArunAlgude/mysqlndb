@@ -1,0 +1,196 @@
+---
+- include_vars: environments/{{ inventory_file | basename }}/group_vars/credentials.yml
+  tags: always
+
+- name: Remove /etc/mysql directory
+  file:
+    path: /etc/mysql
+    state: absent
+  become: yes
+
+- name: Gather old MySQL files
+  shell: ls -d /usr/local/mysql-cluster-gpl*
+  register: old_MySQL_files
+  ignore_errors: True
+  changed_when: False
+
+- name: Download MySQL-Cluster binaries
+  get_url:
+    url: "{{ mySQLclusterDownloadLink }}"
+    dest: /usr/local/{{ mySQLclusterArchiveFileName }}
+    url_username: "{{ artifactory_publicUser }}"
+    url_password: "{{ artifactory_publicPass }}"
+    sha256sum: "{{ mySQLClusterArchiveSHA_256 }}"
+  register: new_mysql_cluster_downloaded
+
+- name: Extract MySQL-Cluster binaries
+  unarchive:
+    src: /usr/local/{{ mySQLclusterArchiveFileName }}
+    dest: /usr/local
+    copy: no
+    creates: /usr/local/{{ mySQLclusterFileName }}
+
+- name: Check if MySQL sql node process is running
+  command: pgrep -x 'mysqld'
+  register: mysqld_pid
+  ignore_errors: True
+  changed_when: False
+- set_fact:
+    mysqld_is_running: True
+  when: "mysqld_pid.rc == 0"
+- set_fact:
+    mysqld_is_running: False
+  when: "mysqld_pid.rc != 0"
+
+- set_fact:
+    isUpgrade: False
+- set_fact:
+    isUpgrade: True
+  when: mysqld_is_running and new_mysql_cluster_downloaded.changed
+
+- name: Kill MySQL sql node process if upgrading
+  command: /usr/local/mysql/bin/mysqladmin -uroot -h127.0.0.1 --protocol=tcp shutdown
+  become_user: mysql
+  register: killed_MySQL_sqlNode
+  when: (new_mysql_cluster_downloaded.changed == true) and mysqld_is_running
+- set_fact: mysqld_is_running=False
+  when: killed_MySQL_sqlNode.changed
+
+- name: Create mysql group
+  group: name=mysql state=present system=yes
+
+- name: Create mysql user in mysql group
+  user: name=mysql state=present group=mysql home=/home/mysql shell=/bin/bash system=yes
+
+- name: Update repositories
+  apt: update_cache=yes cache_valid_time=600
+
+- name: Install Linux kernel AIO access library
+  apt: pkg=libaio1 state=present
+
+- name: Create symlink to /usr/local/mysql
+  file:
+    path: /usr/local/mysql
+    src: /usr/local/{{ mySQLclusterFileName }}
+    state: link
+    force: yes
+
+- name: Create symlink to mysql binary
+  file:
+    path: /usr/bin/mysql
+    src: /usr/local/{{ mySQLclusterFileName }}/bin/mysql
+    state: link
+    force: yes
+
+- name: Install config
+  template: src=my.cnf dest=/etc/my.cnf
+  register: mysql_sql_config
+
+- name: Create the MySQL temp directory
+  file:
+    path: "{{ mysql_SQLnode_tmpdir }}"
+    state: directory
+    recurse: yes
+    group: mysql
+    owner: mysql
+
+- name: Create the MySQL data directory
+  file:
+    path: "{{ mysql_SQLnode_datadir }}"
+    state: directory
+    recurse: yes
+    group: mysql
+    owner: mysql
+
+- name: Create the MySQL socket directory
+  file:
+    path: "{{ mysql_socket_dir }}"
+    state: directory
+    group: mysql
+    owner: mysql
+
+- name: Install SQL node
+  command: scripts/mysql_install_db --user=mysql --datadir={{ mysql_SQLnode_datadir }} --defaults-file=/etc/my.cnf chdir=/usr/local/mysql creates={{ mysql_SQLnode_datadir }}/mysql/user.frm
+  become_user: mysql
+  when: not isUpgrade
+
+- name: Change owner of /usr/local/mysql to root
+  file: path=/usr/local/{{ mySQLclusterFileName }} owner=root group=mysql recurse=true
+
+- name: Install init file
+  command: install /usr/local/mysql/support-files/mysql.server /etc/init.d/ creates=/etc/init.d/mysql.server
+
+- name: Notify handler
+  shell: /bin/true
+  notify:
+    - restart mysql.server
+  when: (hostvars[groups.mysql_cluster_sql[0]]['MySQL_CONFIG_UPDATED'] is defined and hostvars[groups.mysql_cluster_sql[0]]['MySQL_CONFIG_UPDATED']) or isUpgrade or mysql_sql_config.changed
+
+- meta: flush_handlers
+
+- name: Start the sql node
+  service:
+    name: mysql.server
+    state: started
+    enabled: yes
+
+- name: Verify MySQL SQL server is running
+  wait_for:
+    host: "{{ ansible_hostname }}"
+    port: 3306
+    state: started
+    timeout: 60
+  tags: verify
+
+- name: Delete old MySQL files after upgrade
+  file: path={{ item }} state=absent
+  with_items: "{{ old_MySQL_files.stdout_lines }}"
+  when: isUpgrade
+
+- name: Check if root password is set
+  shell: /usr/local/mysql/bin/mysql -e "SELECT User FROM mysql.user;" -u root
+  register: root_has_pswd
+  ignore_errors: True
+  changed_when: False
+
+- name: Set root password
+  shell: /usr/local/mysql/bin/mysql -e "update mysql.user set Password = PASSWORD('{{ mySQL_cluster_admin_pass }}') where User='root'; flush privileges;"
+  when: "root_has_pswd.rc == 0"
+
+- name: Verify ndb_dist_priv procedures created
+  shell: /usr/local/mysql/bin/mysql -uroot -p"{{ mySQL_cluster_admin_pass }}" -e "select routine_name, routine_schema, routine_type from information_schema.routines where routine_name like 'mysql_cluster%' order by routine_type;"
+  register: ndb_dist_priv
+  changed_when: false
+  when: inventory_hostname == groups.mysql_cluster_sql[0]
+
+- name: Import ndb_dist_priv sql
+  shell: /usr/local/mysql/bin/mysql -uroot -p"{{ mySQL_cluster_admin_pass }}" < /usr/local/mysql/share/ndb_dist_priv.sql
+  when: (inventory_hostname == groups.mysql_cluster_sql[0]) and ('mysql_cluster_restore_privileges_from_local' not in ndb_dist_priv.stdout)
+
+- name: Execute mysql cluster move privileges
+  shell: /usr/local/mysql/bin/mysql -uroot -p"{{ mySQL_cluster_admin_pass }}" -e "CALL mysql.mysql_cluster_move_privileges();"
+  when: (inventory_hostname == groups.mysql_cluster_sql[0]) and ('mysql_cluster_restore_privileges_from_local' not in ndb_dist_priv.stdout)
+
+- name: Verify privileges tables were converted to NDB
+  shell: /usr/local/mysql/bin/mysql -uroot -p"{{ mySQL_cluster_admin_pass }}" -e "select concat('Conversion ',IF(mysql.mysql_cluster_privileges_are_distributed(), 'succeeded', 'failed'),'.') as Result;"
+  register: priv_converted
+  changed_when: false
+  when: not isUpgrade and (inventory_hostname == groups.mysql_cluster_sql[0])
+
+- fail: msg='Mysql privileges tables conversion to NDB failed.'
+  when: "not isUpgrade and (inventory_hostname == groups.mysql_cluster_sql[0]) and 'Conversion succeeded' not in priv_converted.stdout"
+
+- name: Remove test database
+  shell: /usr/local/mysql/bin/mysql -uroot -p"{{ mySQL_cluster_admin_pass }}" -e "drop database if exists test;"
+  changed_when: false
+
+- name: Remove anonymous users
+  shell: /usr/local/mysql/bin/mysql -uroot -p"{{ mySQL_cluster_admin_pass }}" -e "delete from mysql.user where user='';"
+  changed_when: false
+
+- name: Securing Test Databases
+  shell: /usr/local/mysql/bin/mysql -uroot -p"{{ mySQL_cluster_admin_pass }}" -e "delete from mysql.db where Db like 'test%'; flush privileges;"
+  changed_when: false
+
+- set_fact:
+    cluster_sql_role_already_ran: True

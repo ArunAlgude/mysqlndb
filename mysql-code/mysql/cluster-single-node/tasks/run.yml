@@ -1,0 +1,30 @@
+#Ensure single MySQL clusters have correct node boot-up order
+
+- name: Check if MySQL Cluster start-up is already configured
+  stat: path="/etc/rc3.d/S80ndbmgmd"
+  register: mysql_cluster_correct
+  ignore_errors: true
+  changed_when: false
+
+- name: Remove rc.d process for single node MySQL Cluster
+  shell: update-rc.d -f {{ item }} remove
+  with_items:
+    - ndbmgmd
+    - ndbd
+    - mysql.server
+  when: (groups['mysql_cluster_mgm'][0] in groups['mysql_cluster_data']) and (groups['mysql_cluster_mgm'][0] in groups['mysql_cluster_sql']) and (mysql_cluster_correct.stat.exists == false)
+  become: yes
+  tags: mysql-cluster_single_node
+
+- name: Add back rc.d process for single node MySQL Cluster
+  shell: update-rc.d {{ item.name }} defaults {{ item.order }}
+  with_items:
+    - { name: 'ndbmgmd', order: '80 90' }
+    - { name: 'ndbd', order: '81 89' }
+    - { name: 'mysql.server', order: '82 87' }
+  when: (groups['mysql_cluster_mgm'][0] in groups['mysql_cluster_data']) and (groups['mysql_cluster_mgm'][0] in groups['mysql_cluster_sql']) and (mysql_cluster_correct.stat.exists == false)
+  become: yes
+  tags: mysql-cluster_single_node
+
+- set_fact:
+    cluster_single_node_role_already_ran: True  
